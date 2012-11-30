@@ -57,23 +57,27 @@ Exports
 
 Types::
 
-        type KeyHandler struct {
-            // contains filtered or unexported fields
-        }
-            This struct actually sets/gets/deletes a key from the database
+    type KeyHandler struct {
+        // contains filtered or unexported fields
+    }
+        This struct actually sets/gets/deletes a key from the database
 
-        func Open(filename string) (*KeyHandler, error)
-            Opens a file to be used as a database. If the file doesn't exist, it'll
-            create it and initialize it.
+    func Open(filename string) (*KeyHandler, error)
+        Opens a file to be used as a database. If the file doesn't exist, it'll
+        create it and initialize it.
 
-        func (kh *KeyHandler) Close() error
-            Closes the file returned by Open, can be deferred that way
+    func (kh *KeyHandler) Close() error
+        Closes the file returned by Open, can be deferred that way
 
-        func (kh *KeyHandler) Del(key string) error
-            Deletes the key if it exists. (returns if it doesn't)
+    func (kh *KeyHandler) Del(key string) error
+        Deletes the key if it exists. (returns if it doesn't)
 
-        func (kh *KeyHandler) Get(key string) (*[]byte, error)
-            Gets the data contained at string
+    func (kh *KeyHandler) Get(key string) (*[]byte, error)
+        Gets the data contained at string
 
-        func (kh *KeyHandler) Set(key string, data []byte) error
-            Sets the key to data
+    func (kh *KeyHandler) GetSafe(key string) (*[]byte, error)
+        Gets the data contained at string Will only return an error on issues
+        reading the key, will return nil for missing keys
+
+    func (kh *KeyHandler) Set(key string, data []byte) error
+        Sets the key to data
