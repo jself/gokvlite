@@ -3,7 +3,7 @@ GoKVLite
 =====
 
 gokvlite is a simple key/value store written in go that implements
-a single file key value/store for use as a library. It is meant to 
+a single file key/value store for use as a library. It is meant to 
 be embedded into another project rather than as a standalone 
 database server. Its inspiration was primarily sqlite (with a near memcache api)
 
