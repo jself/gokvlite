@@ -73,11 +73,7 @@ Types::
         Deletes the key if it exists. (returns if it doesn't)
 
     func (kh *KeyHandler) Get(key string) (*[]byte, error)
-        Gets the data contained at string
-
-    func (kh *KeyHandler) GetSafe(key string) (*[]byte, error)
-        Gets the data contained at string Will only return an error on issues
-        reading the key, will return an empty []byte for missing keys
+        Gets the data contained at string Returns nil if the key doesn't exist
 
     func (kh *KeyHandler) Set(key string, data []byte) error
         Sets the key to data

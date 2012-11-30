@@ -9,7 +9,7 @@ import (
 func TestSectionWriter(t *testing.T) {
 	f, err := ioutil.TempFile("/tmp", "gotest")
 	if err != nil {
-
+		t.Fatalf("Error in TestSectionWriter:", err)
 	}
 	defer f.Close()
 

@@ -20,7 +20,12 @@ func TestOpen(t *testing.T) {
 		t.Fatalf("Error: ", err)
 	}
 
-	data, err := kh.Get("Testing")
+	data, err := kh.Get("blah")
+	if data != nil || err != nil {
+		t.Fatalf("Expected nil returns")
+	}
+
+	data, err = kh.Get("Testing")
 	if err != nil {
 		t.Fatalf("Error: ", err)
 	}

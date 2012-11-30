@@ -258,26 +258,11 @@ func (kh *KeyHandler) Set(key string, data []byte) error {
 }
 
 //Gets the data contained at string
+//Returns nil if the key doesn't exist
 func (kh *KeyHandler) Get(key string) (*[]byte, error) {
 	info, ok := kh.datalocs[key]
 	if !ok {
-		return nil, errors.New("keyhandler: Get: Key does not exist")
-	}
-
-	bl := info.Data
-	data := make([]byte, bl.Entry.Size)
-	_, err := kh.bli.file.ReadAt(data, bl.Entry.Start)
-	return &data, err
-}
-
-//Gets the data contained at string
-//Will only return an error on issues reading the key, will return 
-//an empty []byte for missing keys
-func (kh *KeyHandler) GetSafe(key string) (*[]byte, error) {
-	info, ok := kh.datalocs[key]
-	if !ok {
-		data := make([]byte, 0)
-		return &data, nil
+		return nil, nil
 	}
 
 	bl := info.Data
