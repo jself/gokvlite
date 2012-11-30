@@ -332,7 +332,7 @@ func newFile(path string) (*os.File, *blockListInterface, error) {
 	//This function creates a new file and writes out the header and initial block list
 	bli := new(blockListInterface)
 	bli.BlockListInfos = make(map[int64]*blockListInfo)
-	file, err := os.Create(path)
+	file, err := os.OpenFile(path, os.O_RDWR | os.O_CREATE, os.FileMode(0666))
 	if err != nil {
 		return file, nil, err
 	}
@@ -357,7 +357,7 @@ func newFile(path string) (*os.File, *blockListInterface, error) {
 func readFile(path string) (*os.File, *blockListInterface, error) {
 	bli := new(blockListInterface)
 	bli.BlockListInfos = make(map[int64]*blockListInfo)
-	file, err := os.Open(path)
+	file, err := os.OpenFile(path, os.O_RDWR, os.FileMode(0666))
 	if err != nil {
 		return file, nil, err
 	}
