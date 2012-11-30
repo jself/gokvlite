@@ -52,6 +52,7 @@ Exports
 -------
 
 Types::
+
         type KeyHandler struct {
             // contains filtered or unexported fields
         }
