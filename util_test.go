@@ -1,9 +1,9 @@
-package main
+package gokvlite
 
 import (
-	"testing"
 	"bytes"
 	"io/ioutil"
+	"testing"
 )
 
 func TestSectionWriter(t *testing.T) {

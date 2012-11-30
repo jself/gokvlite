@@ -1,10 +1,10 @@
-package main
+package gokvlite
 
 import (
+	"container/list"
 	"encoding/binary"
 	"io/ioutil"
 	"testing"
-	"container/list"
 )
 
 func TestWriteRead(t *testing.T) {
@@ -67,17 +67,21 @@ func TestFile(t *testing.T) {
 	defer file.Close()
 
 	el := bli.Blocklists.Front()
-	if el == nil { t.Fatalf ("El is nil")}
+	if el == nil {
+		t.Fatalf("El is nil")
+	}
 	manager, ok := el.Value.(*blockListManager)
-	if !ok { t.Fatalf("Incorrect type received from Blocklists")}
+	if !ok {
+		t.Fatalf("Incorrect type received from Blocklists")
+	}
 
-    var entry *blockListInfo
-    for _, entry = range bli.BlockListInfos {
-        break
-    }
+	var entry *blockListInfo
+	for _, entry = range bli.BlockListInfos {
+		break
+	}
 	entry.Entry.Free = 0
 	entry.Entry.Size = 600
-    location := entry.Location
+	location := entry.Location
 	entry.writeInfo(file)
 
 	file.Close()
@@ -86,7 +90,7 @@ func TestFile(t *testing.T) {
 	if manager.headerStart != manager2.headerStart || manager.header.Size != manager2.header.Size {
 		t.Fatalf("Invalid headers")
 	}
-    entry2 := bli2.BlockListInfos[location]
+	entry2 := bli2.BlockListInfos[location]
 	if entry2.Entry.Free != 0 || entry2.Entry.Size != 600 {
 		t.Fatalf("Entry was read incorrectly")
 	}
@@ -101,7 +105,7 @@ func TestGetFree(t *testing.T) {
 	}
 	defer file.Close()
 
-	err, info := bli.GetFree(1024)
+	info, err := bli.GetFree(1024)
 	if err != nil {
 		t.Fatalf("Received error getting free element:", err)
 	}
@@ -115,7 +119,7 @@ func TestGetFree(t *testing.T) {
 		t.Fatalf("Error in SetFree:", err)
 	}
 
-	err, info2 := bli.GetFree(1000)
+	info2, err := bli.GetFree(1000)
 	if err != nil {
 		t.Fatalf("Received error getting free element:", err)
 	}
@@ -127,7 +131,7 @@ func TestGetFree(t *testing.T) {
 		t.Fatalf("Incorrect Size for Entry 2: ", info2.Entry.Size)
 	}
 
-	err, info3 := bli.GetFree(1200)
+	info3, err := bli.GetFree(1200)
 
 	if info3.Entry.Start == info.Entry.Start {
 		t.Fatalf("Starts match when they should be different")
@@ -146,11 +150,13 @@ func TestMakeNewBlockList(t *testing.T) {
 	l := list.List{}
 	bli.Freeentries = l
 
-	err, info := bli.GetFree(1024)
+	info, err := bli.GetFree(1024)
 	if err != nil {
 		t.Fatalf("Received error from GetFree: ", err)
 	}
-	if info.Entry.Size != 1024 { t.Fatalf("Incorrect size for Entry")}
+	if info.Entry.Size != 1024 {
+		t.Fatalf("Incorrect size for Entry")
+	}
 
 	if bli.Blocklists.Len() != 2 {
 		t.Fatalf("New blocklist was not created. Size: ", bli.Blocklists.Len())
@@ -175,5 +181,3 @@ func TestPointerSize(t *testing.T) {
 		t.Fatalf("binary.Size of a pointer isn't the same as the struct size")
 	}
 }
-
-

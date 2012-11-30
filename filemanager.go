@@ -1,11 +1,11 @@
-package main
+package gokvlite
 
 import (
 	"container/list"
 	"encoding/binary"
+	"errors"
 	"io"
 	"os"
-	"errors"
 )
 
 const freeBlockSize = 1024
@@ -37,17 +37,21 @@ func (info *blockListInfo) writeInfo(writer io.WriterAt) error {
 	return writeTo(writer, info.Location, info.Entry)
 }
 
-func (info *blockListInfo) ReadData(reader io.ReaderAt) (error, *[]byte) {
+func (info *blockListInfo) ReadData(reader io.ReaderAt) (*[]byte, error) {
 	//Reads the data from the location specific in the info/entry
-	if info.Entry.Free > 0 { return errors.New("filemanager: ReadData: Info is free, unable to read"), nil }
+	if info.Entry.Free > 0 {
+		return nil, errors.New("filemanager: ReadData: Info is free, unable to read")
+	}
 	data := make([]byte, info.Entry.Size)
 	_, err := reader.ReadAt(data, info.Entry.Start)
-	return err, &data
+	return &data, err
 }
 
 func (info *blockListInfo) WriteData(writer io.WriterAt, data []byte) error {
 	//Writes the data to the location specified by the info/entry
-	if info.Entry.Free == 0 { return errors.New("Info is free, unable to write")}
+	if info.Entry.Free == 0 {
+		return errors.New("Info is free, unable to write")
+	}
 	if int64(binary.Size(data)) != info.Entry.Size {
 		return errors.New("Size of data is incorrect for size of info.")
 	}
@@ -60,78 +64,86 @@ type blockListManager struct {
 	header      *blockListHeaderData
 }
 
-type BlockListInterface struct {
+type blockListInterface struct {
 	/* This handles multiple block lists, gets a free block, etc
+	 */
 
-	Functions on this are:
-	GetFree(size int64) (error, *blockListInfo)
-	SetFree(blockListInfo *bli) error
-
-	getFreeEntry() (error, *blockListInfo)
-	getFileEnd() (int64)
-	*/
-
-	fileheader  *fileHeaderData
-	file        *os.File
-	Blocklists  list.List
-	Freeblocks  list.List
-	Freeentries list.List
-	BlockListInfos map[int64] *blockListInfo
+	fileheader     *fileHeaderData
+	file           *os.File
+	Blocklists     list.List
+	Freeblocks     list.List
+	Freeentries    list.List
+	BlockListInfos map[int64]*blockListInfo
 }
 
-func (bli *BlockListInterface) getFileEnd() (error, int64) {
+func (bli *blockListInterface) getFileEnd() (int64, error) {
 	err := bli.file.Sync()
-	if err != nil { 
-		return err, 0 }
+	if err != nil {
+		return 0, err
+	}
 
 	fi, err := bli.file.Stat()
 	if err != nil {
-		return err, 0
+		return 0, err
 	}
 
 	end := fi.Size()
-	return nil, end
+	return end, err
 }
 
-func (bli *BlockListInterface) makeNewBlockList() error {
-	err, end := bli.getFileEnd()
-	if err != nil { return err }
+func (bli *blockListInterface) makeNewBlockList() error {
+	end, err := bli.getFileEnd()
+	if err != nil {
+		return err
+	}
 	manager, _, err := bli.newBlockList(bli.file, end, freeBlockSize)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	el := bli.Blocklists.Back()
 	if el != nil {
 		bl, ok := el.Value.(*blockListManager)
-		if !ok { return errors.New("Invalid type for blocklistmanager in makeNewBlockList")}
+		if !ok {
+			return errors.New("Invalid type for blocklistmanager in makeNewBlockList")
+		}
 
 		bl.header.Next = manager.headerStart
 		err = writeTo(bli.file, bl.headerStart, bl.header)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 	}
 
 	bli.Blocklists.PushBack(manager)
 	return nil
 }
 
-func (bli *BlockListInterface) getFreeEntry() (error, *blockListInfo) {
+func (bli *blockListInterface) getFreeEntry() (*blockListInfo, error) {
 	//gets a free entry and removes it from the free entry list
 	el := bli.Freeentries.Front()
 	if el == nil {
 		err := bli.makeNewBlockList()
-		if err != nil { return err, nil }
+		if err != nil {
+			return nil, err
+		}
 
 		el = bli.Freeentries.Front()
-		if el == nil { return errors.New("Unable to get new element after making new blocklist"), nil }
+		if el == nil {
+			return nil, errors.New("Unable to get new element after making new blocklist")
+		}
 	}
 
 	info, ok := el.Value.(*blockListInfo)
-	if !ok { return errors.New("Invalid type in Freeentries list"), info}
+	if !ok {
+		return info, errors.New("Invalid type in Freeentries list")
+	}
 	bli.Freeentries.Remove(el)
 
-	return nil, info
+	return info, nil
 }
 
-func (bli *BlockListInterface) Resize(info *blockListInfo, size int64) (error, *blockListInfo, *blockListInfo) {
+func (bli *blockListInterface) Resize(info *blockListInfo, size int64) (*blockListInfo, *blockListInfo, error) {
 	//resizes the info block, makes a new block, returns the old resized one and the new one
 	startingsize := info.Entry.Size
 	if startingsize == size {
@@ -140,10 +152,14 @@ func (bli *BlockListInterface) Resize(info *blockListInfo, size int64) (error, *
 
 	if size > startingsize {
 		//Just get a new entry and disregard the existing one
-		err, newinfo := bli.GetFree(size)
-		if err != nil { return err, nil, nil }
+		newinfo, err := bli.GetFree(size)
+		if err != nil {
+			return nil, nil, err
+		}
 		err = bli.SetFree(info)
-		if err != nil { return err, nil, nil }
+		if err != nil {
+			return nil, nil, err
+		}
 		return nil, newinfo, nil
 	}
 
@@ -151,12 +167,12 @@ func (bli *BlockListInterface) Resize(info *blockListInfo, size int64) (error, *
 
 	err := info.writeInfo(bli.file)
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
-	err, newinfo := bli.getFreeEntry()
+	newinfo, err := bli.getFreeEntry()
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
 	newinfo.Entry.Size = startingsize - size
@@ -164,14 +180,14 @@ func (bli *BlockListInterface) Resize(info *blockListInfo, size int64) (error, *
 	newinfo.Entry.Start = info.Entry.Start + size
 	err = newinfo.writeInfo(bli.file)
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 	bli.Freeblocks.PushBack(newinfo)
 
-	return nil, info, newinfo
+	return info, newinfo, nil
 }
 
-func (bli *BlockListInterface) SetFree(info *blockListInfo) error {
+func (bli *blockListInterface) SetFree(info *blockListInfo) error {
 	//Sets a blocklist as free
 	info.Entry.Free = 1
 	err := info.writeInfo(bli.file)
@@ -182,37 +198,39 @@ func (bli *BlockListInterface) SetFree(info *blockListInfo) error {
 	return nil
 }
 
-func (bli *BlockListInterface) GetFree(size int64) (error, *blockListInfo) {
+func (bli *blockListInterface) GetFree(size int64) (*blockListInfo, error) {
 	//find a block large enough and resize it if it exists. Returns it marked as not free
 	for e := bli.Freeblocks.Front(); e != nil; e = e.Next() {
 		info, ok := e.Value.(*blockListInfo)
-		if !ok { return errors.New("Incorrect type in Freeblocks"), nil }
+		if !ok {
+			return nil, errors.New("Incorrect type in Freeblocks")
+		}
 		switch {
 		case info.Entry.Size == size:
 			info.Entry.Free = 0
 			bli.Freeblocks.Remove(e)
-			return nil, info
+			return info, nil
 
 		case info.Entry.Size > size:
-			err, _, _ := bli.Resize(info, size)
+			_, _, err := bli.Resize(info, size)
 			if err != nil {
-				return err, nil
+				return nil, err
 			}
 			info.Entry.Free = 0
 			bli.Freeblocks.Remove(e)
-			return nil, info
+			return info, nil
 		}
 	}
 
 	//append to end of file
-	err, info := bli.getFreeEntry()
+	info, err := bli.getFreeEntry()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	err, end := bli.getFileEnd()
+	end, err := bli.getFileEnd()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	info.Entry.Start = end
@@ -224,10 +242,10 @@ func (bli *BlockListInterface) GetFree(size int64) (error, *blockListInfo) {
 	bli.file.WriteAt(data, end)
 
 	err = info.writeInfo(bli.file)
-	return err, info
+	return info, err
 }
 
-func (bli *BlockListInterface) newBlockList(w io.WriterAt, start int64, size int64) (*blockListManager, int64, error) {
+func (bli *blockListInterface) newBlockList(w io.WriterAt, start int64, size int64) (*blockListManager, int64, error) {
 	//This creates a single unlinked blocklist
 	//Size is in number of items, not bytes
 	var written int64
@@ -264,7 +282,7 @@ func (bli *BlockListInterface) newBlockList(w io.WriterAt, start int64, size int
 	return manager, written, err
 }
 
-func (bli *BlockListInterface) readBlockList(reader io.ReaderAt, start int64) (*blockListManager, error) {
+func (bli *blockListInterface) readBlockList(reader io.ReaderAt, start int64) (*blockListManager, error) {
 	var read int64
 	header := new(blockListHeaderData)
 	err := readFrom(reader, start, header)
@@ -310,9 +328,9 @@ func writeTo(w io.WriterAt, start int64, data interface{}) error {
 	return binary.Write(sw, binary.LittleEndian, data)
 }
 
-func newFile(path string) (*os.File, *BlockListInterface, error) {
+func newFile(path string) (*os.File, *blockListInterface, error) {
 	//This function creates a new file and writes out the header and initial block list
-	bli := new(BlockListInterface)
+	bli := new(blockListInterface)
 	bli.BlockListInfos = make(map[int64]*blockListInfo)
 	file, err := os.Create(path)
 	if err != nil {
@@ -336,8 +354,8 @@ func newFile(path string) (*os.File, *BlockListInterface, error) {
 	return file, bli, err
 }
 
-func readFile(path string) (*os.File, *BlockListInterface, error) {
-	bli := new(BlockListInterface)
+func readFile(path string) (*os.File, *blockListInterface, error) {
+	bli := new(blockListInterface)
 	bli.BlockListInfos = make(map[int64]*blockListInfo)
 	file, err := os.Open(path)
 	if err != nil {
@@ -354,7 +372,9 @@ func readFile(path string) (*os.File, *BlockListInterface, error) {
 	bli.Blocklists.PushBack(blm)
 	for blm.header.Next != 0 {
 		blm, err = bli.readBlockList(file, blm.header.Next)
-		if err != nil { return file, nil, err }
+		if err != nil {
+			return file, nil, err
+		}
 		bli.Blocklists.PushBack(blm)
 	}
 

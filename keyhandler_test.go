@@ -1,15 +1,14 @@
-package main
+package gokvlite
 
 import (
-    "os"
-	"testing"
 	"fmt"
+	"os"
+	"testing"
 )
-
 
 func TestOpen(t *testing.T) {
 	tempfile := "/tmp/gotest"
-    os.Remove(tempfile)
+	os.Remove(tempfile)
 	kh, err := Open(tempfile)
 
 	if err != nil {
@@ -21,7 +20,7 @@ func TestOpen(t *testing.T) {
 		t.Fatalf("Error: ", err)
 	}
 
-	err, data := kh.Get("Testing")
+	data, err := kh.Get("Testing")
 	if err != nil {
 		t.Fatalf("Error: ", err)
 	}
@@ -38,9 +37,10 @@ func TestOpen(t *testing.T) {
 	}
 	defer kh.Close()
 
-
-	err, data = kh.Get("Testing")
-	if err != nil { t.Fatalf("Error: ", err)}
+	data, err = kh.Get("Testing")
+	if err != nil {
+		t.Fatalf("Error: ", err)
+	}
 	if string(*data) != "blah" {
 		t.Fatalf("Invalid data")
 	}
@@ -57,7 +57,7 @@ func makeUuid() string {
 
 func TestMultiple(t *testing.T) {
 	tempfile := "/tmp/gotest"
-    os.Remove(tempfile)
+	os.Remove(tempfile)
 	kh, err := Open(tempfile)
 	if err != nil {
 		t.Fatalf("Error: ", err)
@@ -66,8 +66,14 @@ func TestMultiple(t *testing.T) {
 		key := makeUuid()
 		var data *[]byte
 		err := kh.Set(key, []byte(key))
-		if err != nil { t.Fatalf("Error in setting key", err)}
-		if err, data = kh.Get(key); err != nil { t.Fatalf("Error: ", err)}
-		if string(*data) != key { t.Fatalf("Data not equal to set value")}
+		if err != nil {
+			t.Fatalf("Error in setting key", err)
+		}
+		if data, err = kh.Get(key); err != nil {
+			t.Fatalf("Error: ", err)
+		}
+		if string(*data) != key {
+			t.Fatalf("Data not equal to set value")
+		}
 	}
 }

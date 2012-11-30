@@ -1,11 +1,11 @@
-package main
+package gokvlite
 
 import (
 	"io"
 )
 
 type sectionWriter struct {
-	file io.WriterAt
+	file   io.WriterAt
 	offset int64
 }
 
@@ -14,7 +14,7 @@ func (sw *sectionWriter) Write(data []byte) (n int, err error) {
 	return
 }
 
-func newSectionWriter(w io.WriterAt, off int64) (*sectionWriter) {
+func newSectionWriter(w io.WriterAt, off int64) *sectionWriter {
 	sw := new(sectionWriter)
 	sw.file = w
 	sw.offset = off
