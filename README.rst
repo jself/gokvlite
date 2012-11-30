@@ -13,6 +13,10 @@ Installation:
 
 > go get github.com/finder/gokvlite
 
+-----
+Usage
+-----
+
 Sample usage::
 
         package main
