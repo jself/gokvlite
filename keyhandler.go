@@ -271,12 +271,13 @@ func (kh *KeyHandler) Get(key string) (*[]byte, error) {
 }
 
 //Gets the data contained at string
-//Will only return an error on issues reading the key, will return nil
-//for missing keys
+//Will only return an error on issues reading the key, will return 
+//an empty []byte for missing keys
 func (kh *KeyHandler) GetSafe(key string) (*[]byte, error) {
 	info, ok := kh.datalocs[key]
 	if !ok {
-		return nil, nil
+		data := make([]byte, 0)
+		return &data, nil
 	}
 
 	bl := info.Data
