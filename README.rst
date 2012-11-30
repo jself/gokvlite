@@ -77,7 +77,7 @@ Types::
 
     func (kh *KeyHandler) GetSafe(key string) (*[]byte, error)
         Gets the data contained at string Will only return an error on issues
-        reading the key, will return nil for missing keys
+        reading the key, will return an empty []byte for missing keys
 
     func (kh *KeyHandler) Set(key string, data []byte) error
         Sets the key to data
